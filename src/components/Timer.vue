@@ -3,93 +3,88 @@ import { ref } from 'vue'
 import { useHotkeys } from 'vue-use-hotkeys'
 
 const seconds = ref<number>(0)
-let interval = null
-const isFlow = ref<boolean>(false)
-const isBreak = ref<boolean>(false)
-const isFocus = ref<boolean>(false)
-const isPaused = ref<boolean>(false)
+let interval: ReturnType<typeof setInterval> | null = null
+const isFlow = ref(false)
+const isBreak = ref(false)
+const isFocus = ref(false)
+const isPaused = ref(false)
 
-const focusTime = ref<number>(5)
-const breakTime = ref<number>(3)
+const timerStarted = ref(false)
+const action = ref(false)
+const focusTime = ref(5)
+const breakTime = ref(3)
 
-const allowAnswer = ref<boolean>(false)
+const allowAnswer = ref(false)
 const continueFocus = ref<boolean | null>(null)
 
+let subSecondCounter = 0 // Conta os ciclos de 100ms
+
 function clock() {
-  if (isFlow.value) {
-    seconds.value++
-  } else {
-    seconds.value--
+  if (!action.value) {
+    subSecondCounter++
+    if (subSecondCounter >= 10) { // A cada 10 ciclos de 100ms → 1 segundo
+      if (isFlow.value) {
+        seconds.value++
+      } else {
+        seconds.value--
+      }
+      subSecondCounter = 0
+    }
   }
 }
 
+function unbreak() {
+  pauseTimer()
+  isFocus.value = true
+  isBreak.value = false
+  seconds.value = focusTime.value
+  resumeTimer()
+}
+
 function timer() {
-  interval = setInterval(async () => {
-    if (seconds.value === 0) {
-      if (isFocus.value) {
-        const ans = await checkFlow()
-        resumeTimer()
-        if (ans) {
-          isFlow.value = true
-          isFocus.value = false
-          seconds.value = 0
-        } else {
-          isFocus.value = false
-          isBreak.value = true
-          seconds.value = breakTime.value
+  if (!timerStarted.value) {
+    timerStarted.value = true
+    interval = setInterval(() => {
+      if (!isPaused.value) {
+        if (seconds.value === 0) {
+          if (isFocus.value) {
+            pauseTimer()
+            allowAnswer.value = true
+          } else {
+            unbreak()
+          }
         }
-      } else {
-        isFocus.value = true
-        isBreak.value = false
-        seconds.value = focusTime.value
+        clock()
       }
-    }
-    if (!isPaused.value) {
-      clock()
-    }
-  }, 1000)
+    }, 100)
+  }
 }
 
 useHotkeys('enter', () => {
   if (allowAnswer.value) {
     continueFocus.value = true
     allowAnswer.value = false
+    
+    isFlow.value = true
+    isFocus.value = false
+    seconds.value = 1
+    resumeTimer()
   }
 })
 
 useHotkeys('n', () => {
-  if (isFlow.value) {
+  if (allowAnswer.value || isFlow.value) {
+    pauseTimer()
     continueFocus.value = false
     allowAnswer.value = false
+    
     isBreak.value = true
     isFocus.value = false
     isFlow.value = false
     seconds.value = breakTime.value
-  }
-  if (allowAnswer.value) {
-    continueFocus.value = false
-    allowAnswer.value = false
+    resumeTimer()
   }
 })
-
-function waitForResponse(): Promise<boolean> {
-  return new Promise((resolve) => {
-    const stopWatch = setInterval(() => {
-      if (continueFocus.value !== null) {
-        clearInterval(stopWatch)
-        resolve(continueFocus.value)
-        continueFocus.value = null
-      }
-    }, 100)
-  })
-}
-
-async function checkFlow() {
-  pauseTimer()
-  allowAnswer.value = true
-
-  return await waitForResponse()
-}
 
 function resumeTimer() {
   isPaused.value = false
@@ -112,9 +107,13 @@ function formatTime(totalSeconds: number) {
 }
 </script>
 
+
 <template>
   <div id="container">
     <div>
+      <p id="status">
+        {{ isFocus ? 'Focus' : isFlow ? 'Flow' : isBreak ? 'Break' : '' }}
+      </p>
       <p id="title"></p>
       <p id="timer">
         {{ formatTime(seconds) }}
