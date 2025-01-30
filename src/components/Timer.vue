@@ -2,18 +2,53 @@
 import { ref } from 'vue'
 import { useHotkeys } from 'vue-use-hotkeys'
 
+const seconds = ref<number>(0)
+let interval = null
+const isFlow = ref<boolean>(false)
+const isBreak = ref<boolean>(false)
+const isFocus = ref<boolean>(false)
+const isPaused = ref<boolean>(false)
+
 const focusTime = ref<number>(5)
-const breakTime = ref<number>(2)
-
-const hours = ref<number>(Math.floor(focusTime.value / 60))
-const minutes = ref<number>(0)
-const seconds = ref<number>(focusTime.value % 60)
-
-const interval = ref<number | null>(null)
-const isBreakTime = ref<boolean>(false)
+const breakTime = ref<number>(3)
 
 const allowAnswer = ref<boolean>(false)
 const continueFocus = ref<boolean | null>(null)
+
+function clock() {
+  if (isFlow.value) {
+    seconds.value++
+  } else {
+    seconds.value--
+  }
+}
+
+function timer() {
+  interval = setInterval(async () => {
+    if (seconds.value === 0) {
+      if (isFocus.value) {
+        const ans = await checkFlow()
+        resumeTimer()
+        if (ans) {
+          isFlow.value = true
+          isFocus.value = false
+          seconds.value = 0
+        } else {
+          isFocus.value = false
+          isBreak.value = true
+          seconds.value = breakTime.value
+        }
+      } else {
+        isFocus.value = true
+        isBreak.value = false
+        seconds.value = focusTime.value
+      }
+    }
+    if (!isPaused.value) {
+      clock()
+    }
+  }, 1000)
+}
 
 useHotkeys('enter', () => {
   if (allowAnswer.value) {
@@ -23,6 +58,14 @@ useHotkeys('enter', () => {
 })
 
 useHotkeys('n', () => {
+  if (isFlow.value) {
+    continueFocus.value = false
+    allowAnswer.value = false
+    isBreak.value = true
+    isFocus.value = false
+    isFlow.value = false
+    seconds.value = breakTime.value
+  }
   if (allowAnswer.value) {
     continueFocus.value = false
     allowAnswer.value = false
@@ -45,86 +88,42 @@ async function checkFlow() {
   pauseTimer()
   allowAnswer.value = true
 
-  const shouldContinueFocus = await waitForResponse()
-
-  if (shouldContinueFocus) {
-    seconds.value += 2
-    isBreakTime.value = false
-    startTimer()
-  } else {
-    startBreak()
-  }
+  return await waitForResponse()
 }
 
-function checkTime() {
-  if (hours.value === 0 && minutes.value === 0 && seconds.value === 0) {
-    checkFlow()
-  }
-}
-
-function startTimer() {
-  if (!interval.value) {
-    interval.value = setInterval(() => {
-      if (seconds.value > 0) {
-        seconds.value--
-      } else if (minutes.value > 0) {
-        seconds.value = 59
-        minutes.value--
-      } else if (hours.value > 0) {
-        minutes.value = 59
-        seconds.value = 59
-        hours.value--
-      }
-      checkTime()
-    }, 1000)
-  }
-}
-
-function startBreak() {
-  isBreakTime.value = true
-  hours.value = 0
-  minutes.value = 0
-  seconds.value = breakTime.value % 60
-  startTimer()
+function resumeTimer() {
+  isPaused.value = false
 }
 
 function pauseTimer() {
-  if (interval.value) {
-    clearInterval(interval.value)
-    interval.value = null
-  }
+  isPaused.value = true
 }
 
-function resetTimer() {
-  pauseTimer()
-  isBreakTime.value = false
-  hours.value = Math.floor(focusTime.value / 60)
-  minutes.value = focusTime.value % 60
-  seconds.value = 0
-}
+useHotkeys('space', () => {
+  timer()
+})
 
-useHotkeys('space', startTimer)
+function formatTime(totalSeconds: number) {
+  const hours = Math.floor(totalSeconds / 3600)
+  const minutes = Math.floor((totalSeconds % 3600) / 60)
+  const seconds = totalSeconds % 60
+
+  return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
+}
 </script>
 
 <template>
-  <div id="container" :class="{ break: isBreakTime, focus: !isBreakTime }">
+  <div id="container">
     <div>
-      <p id="title">DEBUG PURPOUSE >> {{ isBreakTime ? 'Break time' : 'Focus time' }}</p>
+      <p id="title"></p>
       <p id="timer">
-        {{ String(hours).padStart(2, '0') }}:{{ String(minutes).padStart(2, '0') }}:{{
-          String(seconds).padStart(2, '0')
-        }}
+        {{ formatTime(seconds) }}
       </p>
       <p>'Space' to start</p>
       <p>'Enter' to keep on focus</p>
       <p>'n' to start break</p>
-      <p>🔥Flow state🔥</p>
-      <p>Atual: 3min</p>
-      <p>Total: 10min</p>
       <div id="buttons">
-        <button @click="startTimer">Começar</button>
-        <button @click="pauseTimer">Pausar</button>
-        <button @click="resetTimer">Resetar</button>
+        <button @click="timer">Começar</button>
       </div>
     </div>
   </div>
