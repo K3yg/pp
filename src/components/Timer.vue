@@ -1,11 +1,9 @@
 <template>
   <div id="container">
     <div class="content">
-      <!-- Título com o estado atual -->
       <p id="title">{{ currentState }}</p>
 
-      <!-- Círculo de Progresso Minimalista -->
-      <div class="timer-container">
+      <div class="timer-container" :style="{ filter: `drop-shadow(0 0 50px ${stateColor}69)` }">
         <svg viewBox="0 0 36 36" class="circular-chart">
           <!-- Fundo do círculo -->
           <path
@@ -38,16 +36,34 @@
         </svg>
       </div>
 
-      <!-- Instruções -->
-      <div id="instructions">
-        <p>'Space' para iniciar</p>
-        <p>'Enter' para manter o foco</p>
-        <p>'n' para iniciar pausa</p>
-      </div>
+      <div id="box">
+        <div id="instructions">
+          <p>'Space' para iniciar</p>
+          <p>'Enter' para manter o foco</p>
+          <p>'n' para iniciar pausa</p>
+        </div>
 
-      <!-- Botão para iniciar -->
-      <div id="buttons">
-        <button @click="timer">Começar</button>
+        <div id="buttons">
+          <button @click="timer">Começar</button>
+          <button @click="openConfigModal">Config</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" v-if="showConfigModal">
+    <div class="modal-content">
+      <h2>Configurações</h2>
+      <div class="inputs">
+        <label for="workTime">Tempo de Trabalho (minutos):</label>
+        <input type="number" id="workTime" v-model.number="newFocusTime" min="1" />
+
+        <label for="breakTime">Tempo de Pausa (minutos):</label>
+        <input type="number" id="breakTime" v-model.number="newBreakTime" min="1" />
+      </div>
+      <div>
+        <button @click="saveConfig">Salvar</button>
+        <button @click="cancelConfig">Cancelar</button>
       </div>
     </div>
   </div>
@@ -66,14 +82,13 @@ const isFocus = ref(false)
 const isPaused = ref(false)
 const timerStarted = ref(false)
 const action = ref(false)
-const focusTime = ref(5)
-const breakTime = ref(3)
+const focusTime = ref(5 * 60)
+const breakTime = ref(3 * 60)
 const allowAnswer = ref(false)
 const continueFocus = ref<boolean | null>(null)
 
 let subSecondCounter = 0 // Conta ciclos de 100ms
 
-// Computa o estado atual para exibição no título
 const currentState = computed(() => {
   if (isFocus.value) return 'Focus'
   if (isFlow.value) return 'Flow'
@@ -81,24 +96,26 @@ const currentState = computed(() => {
   return 'Idle'
 })
 
-// Retorna a cor conforme o estado
-const stateColor = computed(() => {
-  if (isFocus.value) return '#ff4d4d' // vermelho
-  if (isFlow.value) return '#4d94ff' // azul
-  if (isBreak.value) return '#4dff4d' // verde
-  return '#666' // cinza para Idle
+watch([seconds, currentState], () => {
+  document.title = `${formatTime(seconds.value)} - ${currentState.value}`
 })
 
-// Cálculo do progresso (percentual) do círculo
+const stateColor = computed(() => {
+  if (isFocus.value) return '#ff4d4d'
+  if (isFlow.value) return '#4d94ff'
+  if (isBreak.value) return '#4dff4d'
+  return '#666'
+})
+
 const progress = computed(() => {
   let total = 0
   let current = 0
   if (isFlow.value) {
     total = focusTime.value
-    current = total // crescente
+    current = total
   } else if (isBreak.value) {
     total = breakTime.value
-    current = breakTime.value - seconds.value // decrescente
+    current = breakTime.value - seconds.value
   } else if (isFocus.value) {
     total = focusTime.value
     current = focusTime.value - seconds.value
@@ -114,7 +131,6 @@ function clock() {
   if (!action.value) {
     subSecondCounter++
     if (subSecondCounter >= 10) {
-      // 10 ciclos de 100ms → 1 segundo
       if (isFlow.value) {
         seconds.value++
       } else {
@@ -139,6 +155,7 @@ function timer() {
     interval = setInterval(() => {
       if (!isPaused.value) {
         if (seconds.value === 0) {
+          playSound()
           if (isFocus.value) {
             pauseTimer()
             allowAnswer.value = true
@@ -194,10 +211,35 @@ function formatTime(totalSeconds: number) {
   const secs = totalSeconds % 60
   return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`
 }
+
+function playSound() {
+  const audio = new Audio('/sounds/bell.mp3')
+  audio.volume = 0.25
+  audio.play()
+}
+
+const showConfigModal = ref(false)
+const newFocusTime = ref(focusTime.value)
+const newBreakTime = ref(breakTime.value)
+
+function openConfigModal() {
+  newFocusTime.value = focusTime.value / 60
+  newBreakTime.value = breakTime.value / 60
+  showConfigModal.value = true
+}
+
+function saveConfig() {
+  focusTime.value = newFocusTime.value * 60
+  breakTime.value = newBreakTime.value * 60
+  showConfigModal.value = false
+}
+
+function cancelConfig() {
+  showConfigModal.value = false
+}
 </script>
 
 <style scoped>
-/* Container centralizado com espaçamento adequado */
 #container {
   display: flex;
   justify-content: center;
@@ -209,17 +251,16 @@ function formatTime(totalSeconds: number) {
   text-align: center;
 }
 
-/* Título com o estado atual */
 #title {
-  font-size: 1.5rem;
+  font-size: 2rem;
   margin-bottom: 20px;
 }
 
-/* Estilo do círculo de progresso */
 .timer-container {
-  width: 220px;
-  height: 220px;
-  margin: 0 auto 20px auto;
+  width: 300px;
+  height: 300px;
+  margin: 70px auto 20px auto;
+  border-radius: 50%;
 }
 
 .circular-chart {
@@ -240,21 +281,21 @@ function formatTime(totalSeconds: number) {
   transition: stroke-dasharray 0.3s ease;
 }
 
-/* Reduz o font-size para garantir que o tempo fique contido */
 .percentage {
   font-size: 5px;
   font-weight: bold;
 }
 
-/* Instruções e botão */
 #instructions p {
   margin: 5px 0;
-  font-size: 0.9rem;
+  font-size: 1rem;
   color: #ffffff;
 }
 
 #buttons {
   margin-top: 10px;
+  display: flex;
+  justify-content: space-evenly;
 }
 
 button {
@@ -271,5 +312,85 @@ button {
 button:hover {
   background-color: white;
   color: black;
+}
+
+#box {
+  background-color: #333;
+  padding: 30px;
+  margin-top: 80px;
+  border-radius: 10px;
+}
+
+/* Estilos do Modal aprimorado */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  animation: fadeInOverlay 0.3s ease;
+}
+
+.modal-content {
+  background-color: #262626;
+  color: white;
+  padding: 20px;
+  border-radius: 10px;
+  width: 320px;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+  animation: scaleIn 0.3s ease;
+}
+
+.modal-content h2 {
+  margin-top: 0;
+  font-size: 1.5rem;
+  border-bottom: 1px solid #dddddd;
+  padding-bottom: 10px;
+}
+
+.modal-content div {
+  margin-bottom: 15px;
+}
+
+.modal-content label {
+  display: flex;
+  margin-bottom: 5px;
+  font-weight: 600;
+}
+
+.modal-content input {
+  width: 50%;
+  padding: 8px;
+  border: none;
+  background-color: #666;
+  color: white;
+  border-radius: 5px;
+  box-sizing: border-box;
+  font-size: 1rem;
+}
+
+@keyframes fadeInOverlay {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 </style>
