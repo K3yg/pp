@@ -385,7 +385,7 @@ function cancelConfig() {
 button {
   all: unset;
   padding: 5px;
-  border: 1px solid black;
+  border: 1px solid #262626;
   cursor: pointer;
   transition:
     background-color 0.3s ease-in-out,
