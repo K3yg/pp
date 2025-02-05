@@ -240,7 +240,6 @@ function playSound() {
   audio.play()
 }
 
-/* Persistência de estado via localStorage */
 function saveTimerState() {
   const state = {
     seconds: seconds.value,
@@ -255,6 +254,7 @@ function saveTimerState() {
     breakTime: breakTime.value,
     allowAnswer: allowAnswer.value,
     continueFocus: continueFocus.value,
+    expiry: new Date().getTime() + 3600000, // Expira em 1 hora (3600000ms)
   }
   localStorage.setItem('timerState', JSON.stringify(state))
 }
@@ -264,6 +264,13 @@ function restoreTimerState() {
   if (savedState) {
     try {
       const state = JSON.parse(savedState)
+      const now = new Date().getTime()
+
+      if (now > state.expiry) {
+        localStorage.removeItem('timerState') // Remove se expirado
+        return
+      }
+
       seconds.value = state.seconds
       isFlow.value = state.isFlow
       isBreak.value = state.isBreak
