@@ -1,7 +1,9 @@
 <template>
   <div id="container">
     <div class="content">
-      <p id="title">{{ currentState }}</p>
+      <p id="title" 
+      :style="{ color: stateColor }"      
+      >{{ currentState }}</p>
 
       <div class="timer-container" :style="{ filter: `drop-shadow(0 0 50px ${stateColor}69)` }">
         <svg viewBox="0 0 36 36" class="circular-chart">
@@ -38,14 +40,14 @@
 
       <div id="box">
         <div id="instructions">
-          <p>'Space' para iniciar</p>
-          <p>'Enter' para manter o foco</p>
-          <p>'n' para iniciar pausa</p>
+          <p><span class="key">space</span> para iniciar</p>
+          <p><span class="key">enter</span> para manter o foco</p>
+          <p><span class="key">n</span> para iniciar pausa</p>
         </div>
 
         <div id="buttons">
-          <button @click="timer">Começar</button>
-          <button @click="openConfigModal">Config</button>
+          <button :style="{ backgroundColor: `${stateColor}69)` }"   @click="startTimer">Iniciar</button>
+          <button :style="{ backgroundColor: `${stateColor}69)` }"   @click="openConfigModal">⚙️</button>
         </div>
       </div>
     </div>
@@ -327,9 +329,6 @@ function cancelConfig() {
 }
 </script>
 
-
-
-
 <style scoped>
 #container {
   display: flex;
@@ -345,6 +344,7 @@ function cancelConfig() {
 #title {
   font-size: 2rem;
   margin-bottom: 20px;
+  font-weight: bold;
 }
 
 .timer-container {
@@ -376,40 +376,66 @@ function cancelConfig() {
   font-size: 5px;
   font-weight: bold;
 }
+#instructions {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  align-items: center;
+  justify-content: center;
+}
 
 #instructions p {
-  margin: 5px 0;
-  font-size: 1rem;
-  color: #ffffff;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.key {
+  border: 1px solid rgb(221, 221, 221);
+  box-shadow: 1px 1px rgb(221, 221, 221);
+  font-size: 0.85em;
+  line-height: 0.85em;
+  display: inline-block;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  padding: 3px 5px;
+  white-space: nowrap;
+  background-color: #333;
+  color: #fff;
+  border-radius: 4px;
+  font-family: sans-serif;
 }
 
 #buttons {
-  margin-top: 10px;
+  margin-top: 20px;
   display: flex;
-  justify-content: space-evenly;
+  gap: 15px;
+  align-items: center;
+  justify-content: center;
 }
 
 button {
   all: unset;
-  padding: 5px;
-  border: 1px solid #262626;
+  padding: 6px 12px;
+  background-color: #262626;
+  border: 1px solid #666;
+  color: white;
   cursor: pointer;
   transition:
     background-color 0.3s ease-in-out,
     color 0.3s ease-in-out;
   border-radius: 5px;
+  
 }
 
 button:hover {
-  background-color: white;
-  color: black;
+  background-color: #5f5f5f;
 }
 
 #box {
-  background-color: #333;
-  padding: 30px;
   margin-top: 80px;
   border-radius: 10px;
+  padding: 50px;
 }
 
 /* Estilos do Modal aprimorado */
