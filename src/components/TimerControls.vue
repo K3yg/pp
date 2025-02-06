@@ -1,13 +1,13 @@
 <template>
   <div id="box">
     <div id="instructions">
-      <p><span class="key">space</span> para iniciar</p>
-      <p><span class="key">enter</span> para manter o foco</p>
-      <p><span class="key">n</span> para iniciar pausa</p>
+      <p><span class="key" :style="{ backgroundColor: `${stateColor}99` }">space</span> para iniciar</p>
+      <p><span class="key" :style="{ backgroundColor: `${stateColor}99` }" >enter</span> para manter o foco</p>
+      <p><span class="key" :style="{ backgroundColor: `${stateColor}99` }" >n</span> para iniciar pausa</p>
     </div>
     <div id="buttons">
-      <button :style="{ backgroundColor: `${stateColor}69` }" @click="startTimer">Iniciar</button>
-      <button :style="{ backgroundColor: `${stateColor}69` }" @click="$emit('open-config')">⚙️</button>
+      <button :style="{ backgroundColor: `${stateColor}99` }" @click="startTimer">Iniciar</button>
+      <button :style="{ backgroundColor: `${stateColor}99` }" @click="$emit('open-config')">⚙️</button>
     </div>
   </div>
 </template>
@@ -66,11 +66,11 @@ button {
   all: unset;
   padding: 6px 12px;
   background-color: #262626;
-  border: 1px solid #666;
   color: white;
   cursor: pointer;
   transition: background-color 0.3s ease-in-out, color 0.3s ease-in-out;
   border-radius: 5px;
+  box-shadow: 1px 1px 10px rgb(0, 0, 0, 0.3);
 }
 
 button:hover {

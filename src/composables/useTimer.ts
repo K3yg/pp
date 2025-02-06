@@ -159,7 +159,7 @@ export function useTimer() {
 
   function playSound() {
     const audio = new Audio('/sounds/bell.mp3')
-    audio.volume = 0.25
+    audio.volume = 0.15
     audio.play()
   }
 
@@ -218,7 +218,11 @@ export function useTimer() {
     },
     { deep: true }
   )
-
+  
+  watch([seconds, currentState], () => {
+    document.title = `${formatTime(seconds.value)} - ${currentState.value}`
+  })
+  
   onMounted(() => {
     restoreTimerState()
     if (timerStarted.value && !interval) {
