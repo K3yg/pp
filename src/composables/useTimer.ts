@@ -1,8 +1,10 @@
 import { ref, computed, watch, onMounted } from 'vue'
 import { useHotkeys } from 'vue-use-hotkeys'
+import { useI18n } from 'vue-i18n'
 
 export function useTimer() {
-  // Estados e variáveis
+  const { t } = useI18n()
+
   const seconds = ref<number>(0)
   let interval: ReturnType<typeof setInterval> | null = null
 
@@ -11,17 +13,16 @@ export function useTimer() {
   const isFocus = ref(false)
   const isPaused = ref(false)
   const timerStarted = ref(false)
-  const focusTime = ref(2)  // tempo em segundos para teste
-  const breakTime = ref(3)  // tempo em segundos para teste
+  const focusTime = ref(30 * 60)
+  const breakTime = ref(10 * 60)
   const allowAnswer = ref(false)
   const continueFocus = ref<boolean | null>(null)
 
-  // Computeds
   const currentState = computed(() => {
-    if (isFocus.value) return 'Focus'
-    if (isFlow.value) return 'Flow'
-    if (isBreak.value) return 'Break'
-    return 'Idle'
+    if (isFocus.value) return t('states.focus')
+    if (isFlow.value) return t('states.flow')
+    if (isBreak.value) return t('states.break')
+    return t('states.idle')
   })
 
   const stateColor = computed(() => {
